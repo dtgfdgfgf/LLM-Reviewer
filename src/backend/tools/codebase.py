@@ -21,6 +21,7 @@ from __future__ import annotations
 import fnmatch
 import os
 import re
+import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -41,8 +42,8 @@ MAX_DIRECTORY_FILES = 300  # total entries before truncation
 MAX_GREP_OUTPUT_BYTES = 20_000  # bytes before grep output is truncated
 
 # Agent guardrail thresholds
-_TOOL_CALL_NUDGE_AT = 15   # append a "do you have enough?" nudge after this many calls
-_FILE_READ_WARN_AT = 20    # append a soft warning after this many distinct files read
+_TOOL_CALL_NUDGE_AT = 15  # append a "do you have enough?" nudge after this many calls
+_FILE_READ_WARN_AT = 20  # append a soft warning after this many distinct files read
 
 # Common large/generated directories to skip in non-git fallback mode.
 _SKIP_DIRS: frozenset[str] = frozenset(
@@ -168,6 +169,8 @@ _BINARY_EXTENSIONS: frozenset[str] = frozenset(
     }
 )
 
+_GIT_EXECUTABLE = shutil.which("git") or shutil.which("git.exe")
+
 
 # ── Custom exceptions ─────────────────────────────────────────────────────────
 
@@ -229,8 +232,10 @@ class CodebaseToolRegistry:
 
         try:
             resolved.relative_to(self._root)
-        except ValueError:
-            raise PathNotAllowedError(f"Path '{path}' is outside the allowed root '{self._root}'")
+        except ValueError as exc:
+            raise PathNotAllowedError(
+                f"Path '{path}' is outside the allowed root '{self._root}'"
+            ) from exc
         return resolved
 
     def read_file(self, path: str) -> str:
@@ -257,7 +262,9 @@ class CodebaseToolRegistry:
             )
         supported, reason = is_supported_text_file(safe)
         if not supported:
-            raise UnsupportedFileTypeError(f"File '{path}' is not a supported text/code file: {reason}")
+            raise UnsupportedFileTypeError(
+                f"File '{path}' is not a supported text/code file: {reason}"
+            )
 
         content = safe.read_text(encoding="utf-8", errors="replace")
         logger.debug("read_file", path=str(safe), size=size)
@@ -419,7 +426,7 @@ class CodebaseToolRegistry:
 
         try:
             result = subprocess.run(
-                ["git", "diff", base],
+                [_GIT_EXECUTABLE or "git", "diff", base],
                 cwd=str(safe),
                 capture_output=True,
                 text=True,
@@ -460,7 +467,7 @@ class CodebaseToolRegistry:
 
         try:
             result = subprocess.run(
-                ["git", "diff", base, "--", rel_file],
+                [_GIT_EXECUTABLE or "git", "diff", base, "--", rel_file],
                 cwd=str(safe_root),
                 capture_output=True,
                 text=True,
@@ -713,7 +720,7 @@ def _is_git_repo(path: Path) -> bool:
     """Return True if path is inside a git repository."""
     try:
         result = subprocess.run(
-            ["git", "rev-parse", "--git-dir"],
+            [_GIT_EXECUTABLE or "git", "rev-parse", "--git-dir"],
             cwd=str(path),
             capture_output=True,
             timeout=5,
@@ -733,7 +740,13 @@ def _git_ls_files(root: Path) -> list[str] | None:
     """
     try:
         result = subprocess.run(
-            ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
+            [
+                _GIT_EXECUTABLE or "git",
+                "ls-files",
+                "--cached",
+                "--others",
+                "--exclude-standard",
+            ],
             cwd=str(root),
             capture_output=True,
             text=True,

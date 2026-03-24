@@ -117,11 +117,12 @@ _ROLE_FOCUS: dict[str, str] = {
         "subsystems before treating any failed command as repo-wide breakage."
     ),
     "test_integrity": (
-        "Audit whether tests validate behavior or merely mirror implementation. Flag brittle tests, "
-        "missing behavior coverage, and spec/test drift. Separate runtime failures from coverage "
-        "gaps, validate whether integration labels actually cross real boundaries, and only "
-        "elevate missing system-level validation to a product or security defect when the repo "
-        "explicitly claims that guarantee."
+        "Audit whether tests validate behavior or merely mirror implementation. "
+        "Flag brittle tests, missing behavior coverage, and spec/test drift. "
+        "Separate runtime failures from coverage gaps, validate whether integration "
+        "labels actually cross real boundaries, and only elevate missing system-level "
+        "validation to a product or security defect when the repo explicitly claims "
+        "that guarantee."
     ),
     "llm_artifact_simplification": (
         "Audit LLM-specific smells: over-abstraction, fake extensibility, hallucinated APIs, "
@@ -257,7 +258,9 @@ class BudgetManager:
                     "shard_count": total,
                 }
             )
-            shard.estimated_tokens = self.estimate_assignment_tokens(root, shard, verification_slice)
+            shard.estimated_tokens = self.estimate_assignment_tokens(
+                root, shard, verification_slice
+            )
             shards.append(shard)
         return shards
 
@@ -390,7 +393,7 @@ class StrictSessionAgent:
 
             if session_task not in done:
                 reason = watchdog_task.result()
-                raise asyncio.TimeoutError(reason)
+                raise TimeoutError(reason)
 
             event = session_task.result()
             duration_ms = int((time.monotonic() - start_time) * 1000)
@@ -535,7 +538,9 @@ def build_llm_review_plan(root: str, focus_prompt: str) -> LLMReviewPlan:
         8,
     )
 
-    shared_core_files = _dedupe(docs + manifests[:2] + entrypoints[:2] + core_code[:4] + tests[:2])[:12]
+    shared_core_files = _dedupe(docs + manifests[:2] + entrypoints[:2] + core_code[:4] + tests[:2])[
+        :12
+    ]
     artifact_files = _dedupe(docs + manifests + ci + configs + schemas + tests)[:16]
 
     risk_hypotheses = [
@@ -543,11 +548,17 @@ def build_llm_review_plan(root: str, focus_prompt: str) -> LLMReviewPlan:
         "Abstractions may overfit imagined future states rather than present requirements.",
     ]
     if any("auth" in path.lower() for path in files):
-        risk_hypotheses.append("Security-critical boundaries may look complete while lacking enforcement.")
+        risk_hypotheses.append(
+            "Security-critical boundaries may look complete while lacking enforcement."
+        )
     if tests:
-        risk_hypotheses.append("Tests may mirror implementation rather than verify user-visible behavior.")
+        risk_hypotheses.append(
+            "Tests may mirror implementation rather than verify user-visible behavior."
+        )
     if not ci:
-        risk_hypotheses.append("Build/runtime assumptions may be undocumented because CI evidence is missing.")
+        risk_hypotheses.append(
+            "Build/runtime assumptions may be undocumented because CI evidence is missing."
+        )
 
     assignments: list[SpecialistAssignment] = []
     for role, display_name in _ROLE_DISPLAY_NAMES.items():
@@ -600,7 +611,8 @@ def _verification_slice(role: str, summary: VerificationSummary) -> list[dict[st
 def _specialist_system_prompt(role: str) -> str:
     return f"""You are a strict code review specialist for fully LLM-generated repositories.
 
-You must review only through the provided tools and then call submit_findings with structured output.
+You must review only through the provided tools and then call
+submit_findings with structured output.
 
 Behavioral rules:
 - Be skeptical of elegant-looking abstractions that lack evidence.
@@ -608,14 +620,17 @@ Behavioral rules:
 - Prefer precise, evidence-backed findings over broad commentary.
 - If you find no issues in an audited dimension, record that in no_issue_sections.
 - Do not invent files, APIs, or product requirements.
-- All outward-facing output, including summaries and rationale, must be written in Traditional Chinese.
+- All outward-facing output, including summaries and rationale,
+  must be written in Traditional Chinese.
 
 Your audit lens:
 {_ROLE_FOCUS[role]}
 """
 
 
-def _specialist_prompt(assignment: SpecialistAssignment, verification_slice: list[dict[str, Any]]) -> str:
+def _specialist_prompt(
+    assignment: SpecialistAssignment, verification_slice: list[dict[str, Any]]
+) -> str:
     shared = "\n".join(f"- {path}" for path in assignment.shared_core_files) or "- none"
     artifacts = "\n".join(f"- {path}" for path in assignment.artifact_files[:8]) or "- none"
     extras = "\n".join(f"- {path}" for path in assignment.role_extra_files) or "- none"
@@ -623,7 +638,9 @@ def _specialist_prompt(assignment: SpecialistAssignment, verification_slice: lis
     return (
         f"Review agent: {assignment.display_name}\n"
         f"Focus:\n{assignment.focus}\n\n"
-        f"Risk hypotheses:\n" + "\n".join(f"- {item}" for item in assignment.risk_hypotheses) + "\n\n"
+        f"Risk hypotheses:\n"
+        + "\n".join(f"- {item}" for item in assignment.risk_hypotheses)
+        + "\n\n"
         f"Shared core files:\n{shared}\n\n"
         f"Artifact files:\n{artifacts}\n\n"
         f"Role-specific extra files:\n{extras}\n\n"
@@ -656,10 +673,14 @@ def _verification_findings(summary: VerificationSummary) -> list[Finding]:
         label = verification_check_title(check)
         kind = check.kind_hint
         if kind == FindingKind.RUNTIME_FAILURE:
-            is_canonical_blocker = check.blocking and check.status == "failed" and (
-                check.role == VerificationRole.CANONICAL
-                or label in summary.blocking_failures
-                or check.name in summary.blocking_failures
+            is_canonical_blocker = (
+                check.blocking
+                and check.status == "failed"
+                and (
+                    check.role == VerificationRole.CANONICAL
+                    or label in summary.blocking_failures
+                    or check.name in summary.blocking_failures
+                )
             )
             if check.status == "skipped":
                 continue
@@ -669,38 +690,61 @@ def _verification_findings(summary: VerificationSummary) -> list[Finding]:
             elif check.role == VerificationRole.SUPPLEMENTAL and check.status == "failed":
                 severity = FindingSeverity.MAJOR
                 gate_impact = "補充檢查失敗，但尚未證明它屬於正式 gate。"
-            elif check.status == "unavailable" and check.applicability == VerificationApplicability.REQUIRED:
+            elif (
+                check.status == "unavailable"
+                and check.applicability == VerificationApplicability.REQUIRED
+            ):
                 severity = FindingSeverity.MAJOR
                 gate_impact = "必要的 deterministic validation 證據不可用，需要人工確認。"
             else:
                 severity = FindingSeverity.MINOR
                 gate_impact = "目前僅能視為補充或探索性訊號。"
             why_it_matters = (
-                "在嚴格阻擋模式下，正式 gate 的執行失敗不能被忽略；非 canonical 失敗則必須先確認其適用性。"
+                "在嚴格阻擋模式下，正式 gate 的執行失敗不能被忽略；"
+                "非 canonical 失敗則必須先確認其適用性。"
             )
             suggested_fix = (
                 f"確認 `{label}` 的來源、適用範圍與工作目錄，"
                 "再決定它應屬於 canonical gate、supplemental check，或 stale scaffold。"
             )
         elif kind == FindingKind.COVERAGE_GAP:
-            severity = FindingSeverity.MAJOR if check.scope in {"db", "e2e", "repo-wide"} else FindingSeverity.MINOR
-            gate_impact = "沒有 canonical blocking failure，但預設驗證 gate 對關鍵路徑只提供部分覆蓋。"
+            severity = (
+                FindingSeverity.MAJOR
+                if check.scope in {"db", "e2e", "repo-wide"}
+                else FindingSeverity.MINOR
+            )
+            gate_impact = (
+                "沒有 canonical blocking failure，但預設驗證 gate 對關鍵路徑只提供部分覆蓋。"
+            )
             why_it_matters = "測試綠燈不代表關鍵 DB / integration 路徑已被預設 gate 驗證。"
             suggested_fix = (
                 f"將 `{label}` 明確標成 opt-in coverage，或補上可在預設 gate 中執行的代表性驗證。"
             )
         elif kind == FindingKind.LABEL_MISMATCH:
-            severity = FindingSeverity.MAJOR if check.role != VerificationRole.STALE_SUSPECT else FindingSeverity.MINOR
+            severity = (
+                FindingSeverity.MAJOR
+                if check.role != VerificationRole.STALE_SUSPECT
+                else FindingSeverity.MINOR
+            )
             gate_impact = "測試名稱與實際測試層級不一致，容易讓團隊高估覆蓋範圍。"
-            why_it_matters = "integration 標籤若主要靠內部 mock 支撐，會讓團隊誤把 controller/API-level 測試當成跨邊界驗證。"
+            why_it_matters = (
+                "integration 標籤若主要靠內部 mock 支撐，"
+                "會讓團隊誤把 controller/API-level 測試當成跨邊界驗證。"
+            )
             suggested_fix = f"重新命名 `{label}`，或補上真正不 patch 關鍵邊界的系統層驗證。"
         else:
             if check.status != "unavailable":
                 continue
             severity = FindingSeverity.MINOR
             gate_impact = "目前缺少足夠的 deterministic validation discovery 訊號。"
-            why_it_matters = "沒有可安全執行的驗證入口時，reviewer 應明確標示證據不足，而不是假設 repo 已全數通過。"
-            suggested_fix = "補充 CI、task runner、或 docs 中的正式驗證入口，讓 reviewer 能穩定發現 canonical checks。"
+            why_it_matters = (
+                "沒有可安全執行的驗證入口時，reviewer 應明確標示證據不足，"
+                "而不是假設 repo 已全數通過。"
+            )
+            suggested_fix = (
+                "補充 CI、task runner、或 docs 中的正式驗證入口，"
+                "讓 reviewer 能穩定發現 canonical checks。"
+            )
         findings.append(
             Finding(
                 id=f"verification::{check.name}::{check.scope}::{check.working_dir}",
@@ -711,13 +755,16 @@ def _verification_findings(summary: VerificationSummary) -> list[Finding]:
                 summary=f"{label}：{verification_status_label(check)}。{check.summary}",
                 claim=check.summary,
                 evidence_refs=[EvidenceRef(kind="runtime", label=label)],
-                confidence=min(1.0, check.confidence + (0.15 if check.status == "failed" else 0.05)),
+                confidence=min(
+                    1.0, check.confidence + (0.15 if check.status == "failed" else 0.05)
+                ),
                 why_it_matters=why_it_matters,
                 suggested_fix=suggested_fix,
                 gate_impact=gate_impact,
                 cluster_key=f"verification::{check.name}::{check.scope}::{check.working_dir}",
                 assumption=(
-                    "此結論以 live repo / manifests / docs / executed checks 為優先；若 repo 另有未發現的 canonical gate，"
+                    "此結論以 live repo / manifests / docs / executed checks 為優先；"
+                    "若 repo 另有未發現的 canonical gate，"
                     "需重新分類。"
                 ),
                 affected_scope=check.scope,
@@ -782,7 +829,9 @@ def _challenge_candidates(
         if severity_scores and max(severity_scores) - min(severity_scores) >= 2:
             candidates.append(cluster_findings)
             continue
-        if has_runtime_gap and any(item.drift_type == DriftType.RUNTIME for item in cluster_findings):
+        if has_runtime_gap and any(
+            item.drift_type == DriftType.RUNTIME for item in cluster_findings
+        ):
             candidates.append(cluster_findings)
 
     candidates.sort(key=_candidate_cluster_score, reverse=True)
@@ -826,7 +875,9 @@ def _apply_challenge_decisions(
 
 
 def _derive_drift_summary(findings: list[Finding]) -> DriftSummary:
-    counts = Counter(item.drift_type.value for item in findings if item.drift_type != DriftType.NONE)
+    counts = Counter(
+        item.drift_type.value for item in findings if item.drift_type != DriftType.NONE
+    )
     top = [name for name, _ in counts.most_common(3)]
     if not top:
         return DriftSummary(top_drift_types=[], summary="未識別出明顯的漂移主題。")
@@ -915,7 +966,8 @@ def _build_report(
     if verification_summary.checks:
         for check in verification_summary.checks:
             lines.append(
-                f"- `{verification_check_title(check)}`：{verification_status_label(check)}，{check.summary}"
+                f"- `{verification_check_title(check)}`："
+                f"{verification_status_label(check)}，{check.summary}"
             )
     else:
         lines.append("- 本次沒有額外執行 runtime checks。")
@@ -925,9 +977,10 @@ def _build_report(
             return
         lines.extend(["", f"## {section}"])
         for item in items:
-            evidence = ", ".join(
-                ref.label or ref.path or ref.kind for ref in item.evidence_refs[:3]
-            ) or "未提供證據"
+            evidence = (
+                ", ".join(ref.label or ref.path or ref.kind for ref in item.evidence_refs[:3])
+                or "未提供證據"
+            )
             lines.extend(
                 [
                     f"- **{item.severity.value.upper()}** `{item.category}`：{item.summary}",
@@ -977,7 +1030,9 @@ async def _run_specialist(
                 )
             return ToolResult(text_result_for_llm="已接受 findings。", result_type="success")
         except Exception as exc:
-            return ToolResult(text_result_for_llm=f"findings 格式無效：{exc}", result_type="failure")
+            return ToolResult(
+                text_result_for_llm=f"findings 格式無效：{exc}", result_type="failure"
+            )
 
     tools = [
         *build_codebase_tools(root, start_time=time.monotonic()),
@@ -994,7 +1049,10 @@ async def _run_specialist(
         SessionConfig(
             model=model,
             tools=tools,
-            system_message={"mode": "replace", "content": _specialist_system_prompt(assignment.role)},
+            system_message={
+                "mode": "replace",
+                "content": _specialist_system_prompt(assignment.role),
+            },
             streaming=True,
             working_directory=root,
         )
@@ -1032,7 +1090,9 @@ async def _run_specialist(
             no_issue_sections=submission.no_issue_sections,
             audited_dimensions=submission.audited_dimensions or [assignment.role],
             rationale_markdown=submission.rationale_markdown,
-            verification_checks=[VerificationCheckResult.model_validate(item) for item in verification_slice],
+            verification_checks=[
+                VerificationCheckResult.model_validate(item) for item in verification_slice
+            ],
         ).report_markdown
         or ""
     ).model_copy(
@@ -1049,7 +1109,9 @@ async def _run_specialist(
     return SpecialistRunResult(submission=submission, session_report=session_report)
 
 
-def _challenge_prompt(candidates: list[list[Finding]], verification_summary: VerificationSummary) -> str:
+def _challenge_prompt(
+    candidates: list[list[Finding]], verification_summary: VerificationSummary
+) -> str:
     payload = {
         "clusters": [[finding.model_dump() for finding in cluster] for cluster in candidates],
         "verification_summary": verification_summary.model_dump(),
@@ -1101,7 +1163,9 @@ async def _run_challenger(
                 )
             return ToolResult(text_result_for_llm="已接受 challenge 結果。", result_type="success")
         except Exception as exc:
-            return ToolResult(text_result_for_llm=f"challenge 格式無效：{exc}", result_type="failure")
+            return ToolResult(
+                text_result_for_llm=f"challenge 格式無效：{exc}", result_type="failure"
+            )
 
     tools = [
         *build_codebase_tools(root, start_time=time.monotonic()),
@@ -1268,7 +1332,9 @@ async def _run_judge(
             )
             return ToolResult(text_result_for_llm="已接受最終裁決。", result_type="success")
         except Exception as exc:
-            return ToolResult(text_result_for_llm=f"judgment 格式無效：{exc}", result_type="failure")
+            return ToolResult(
+                text_result_for_llm=f"judgment 格式無效：{exc}", result_type="failure"
+            )
 
     model = model_router.get_model(AgentRole.JUDGE)
     session = await session_manager.create_session(
@@ -1474,7 +1540,9 @@ async def run_llm_repo_pipeline(
             model_router=model_router,
         )
         session_reports.append(challenge_result.session_report)
-        findings, rejected_findings = _apply_challenge_decisions(findings, challenge_result.decisions)
+        findings, rejected_findings = _apply_challenge_decisions(
+            findings, challenge_result.decisions
+        )
         challenged_cluster_count = len(challenge_result.decisions)
     else:
         challenged_cluster_count = 0

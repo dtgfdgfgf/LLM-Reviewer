@@ -47,10 +47,15 @@ class SecurityAgent(BaseAgent):
     role = AgentRole.SECURITY
 
     def _build_prompt(self, files: list[str], focus: str) -> str:
-        files_list = "\n".join(f"- {f}" for f in files) if files else "- (entire codebase — use list_directory to discover files)"
+        files_list = (
+            "\n".join(f"- {f}" for f in files)
+            if files
+            else "- (entire codebase — use list_directory to discover files)"
+        )
         return (
             f"Perform a security review of the following files:\n\n{files_list}\n\n"
             f"Additional context from orchestrator: {focus}\n\n"
-            f"Use list_directory to understand the project structure, then read_file on the assigned files. "
+            "Use list_directory to understand the project structure, "
+            "then read_file on the assigned files. "
             f"Provide your complete security review in the required format."
         )

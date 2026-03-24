@@ -7,12 +7,14 @@ Validation happens here — the orchestration layer receives clean data.
 
 from __future__ import annotations
 
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from backend.orchestration.report_artifacts import ArtifactSummary, SessionReport
 from backend.orchestration.strict_types import (
     ConvergenceMetrics,
+    DriftSummary,
     EvidenceMode,
     Finding,
     GateMode,
@@ -22,8 +24,6 @@ from backend.orchestration.strict_types import (
     VerificationSummary,
 )
 from backend.orchestration.strict_types import ConvergenceMode as StrictConvergenceMode
-from backend.orchestration.strict_types import DriftSummary
-from backend.orchestration.report_artifacts import ArtifactSummary, SessionReport
 from backend.tools.codebase import MAX_FILE_SIZE_BYTES
 
 
@@ -82,7 +82,7 @@ class ReviewRequest(BaseModel):
         default=None,
         description="Absolute paths to the selected files when source_mode=files",
     )
-    uploaded_files: list["UploadedFileInput"] | None = Field(
+    uploaded_files: list[UploadedFileInput] | None = Field(
         default=None,
         description="Text/code files uploaded from drag-drop when source_mode=uploaded_files",
     )
@@ -109,23 +109,31 @@ class ReviewRequest(BaseModel):
     convergence_mode: StrictConvergenceMode = Field(default=StrictConvergenceMode.SINGLE_PASS)
 
     @model_validator(mode="after")
-    def validate_source_mode(self) -> "ReviewRequest":
+    def validate_source_mode(self) -> ReviewRequest:
         if self.source_mode == "folder":
             if not self.folder_path:
                 raise ValueError("folder_path is required when source_mode is 'folder'")
             if self.file_paths or self.uploaded_files:
-                raise ValueError("file_paths/uploaded_files are not allowed when source_mode is 'folder'")
+                raise ValueError(
+                    "file_paths/uploaded_files are not allowed when source_mode is 'folder'"
+                )
             return self
         if self.source_mode == "files":
             if not self.file_paths:
                 raise ValueError("file_paths must be non-empty when source_mode is 'files'")
             if self.folder_path or self.uploaded_files:
-                raise ValueError("folder_path/uploaded_files are not allowed when source_mode is 'files'")
+                raise ValueError(
+                    "folder_path/uploaded_files are not allowed when source_mode is 'files'"
+                )
             return self
         if not self.uploaded_files:
-            raise ValueError("uploaded_files must be non-empty when source_mode is 'uploaded_files'")
+            raise ValueError(
+                "uploaded_files must be non-empty when source_mode is 'uploaded_files'"
+            )
         if self.folder_path or self.file_paths:
-            raise ValueError("folder_path/file_paths are not allowed when source_mode is 'uploaded_files'")
+            raise ValueError(
+                "folder_path/file_paths are not allowed when source_mode is 'uploaded_files'"
+            )
         return self
 
     @field_validator("folder_path")
@@ -270,19 +278,19 @@ class ReviewStatusResponse(BaseModel):
     selected_paths: list[str]
     model_preset: str
     started_at: int  # unix ms
-    completed_at: Optional[int] = None  # unix ms
-    duration_ms: Optional[int] = None
-    report: Optional[str] = None  # populated when status == "complete"
-    error: Optional[str] = None  # populated when status == "error"
-    verdict: Optional[GateVerdict] = None
+    completed_at: int | None = None  # unix ms
+    duration_ms: int | None = None
+    report: str | None = None  # populated when status == "complete"
+    error: str | None = None  # populated when status == "error"
+    verdict: GateVerdict | None = None
     findings: list[Finding] = Field(default_factory=list)
     consensus_findings: list[Finding] = Field(default_factory=list)
     disputed_findings: list[Finding] = Field(default_factory=list)
-    convergence_metrics: Optional[ConvergenceMetrics] = None
-    verification_summary: Optional[VerificationSummary] = None
-    drift_summary: Optional[DriftSummary] = None
+    convergence_metrics: ConvergenceMetrics | None = None
+    verification_summary: VerificationSummary | None = None
+    drift_summary: DriftSummary | None = None
     session_reports: list[SessionReport] = Field(default_factory=list)
-    final_summary_markdown: Optional[str] = None
-    next_steps_markdown: Optional[str] = None
-    artifact_summary: Optional[ArtifactSummary] = None
+    final_summary_markdown: str | None = None
+    next_steps_markdown: str | None = None
+    artifact_summary: ArtifactSummary | None = None
     sse_url: str  # convenience: always /api/events/{review_id}

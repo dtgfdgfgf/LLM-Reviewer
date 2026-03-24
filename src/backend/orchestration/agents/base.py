@@ -33,13 +33,14 @@ logger = get_logger("agent.base")
 AGENT_TOTAL_TIMEOUT_S: float = 600.0  # 10-min hard ceiling
 AGENT_LIVENESS_TIMEOUT_S: float = 90.0  # 90 s idle → stuck
 WATCHDOG_POLL_S: float = 10.0
-AGENT_SOFT_WARN_RATIO: float = 0.70   # 70% elapsed → inject soft warning
-AGENT_HARD_WARN_RATIO: float = 0.90   # 90% elapsed → inject hard write trigger
+AGENT_SOFT_WARN_RATIO: float = 0.70  # 70% elapsed → inject soft warning
+AGENT_HARD_WARN_RATIO: float = 0.90  # 90% elapsed → inject hard write trigger
 
 _SOFT_WARN_PROMPT = (
     "You have used 70% of your time budget. "
     "If you have not yet started writing your review, begin now using what you have read so far. "
-    "Stop reading new files unless you have a specific unanswered question that will change a finding."
+    "Stop reading new files unless you have a specific unanswered question "
+    "that will change a finding."
 )
 _HARD_WARN_PROMPT = (
     "You have used 90% of your time budget. "
@@ -120,7 +121,7 @@ class BaseAgent:
             )
             return result
 
-        except asyncio.TimeoutError as exc:
+        except TimeoutError as exc:
             msg = f"Agent {self.role.value} timed out: {exc}"
             self._completed_at_ms = int(time.time() * 1000)
             self._status = "error"
@@ -178,9 +179,7 @@ class BaseAgent:
             session_task = asyncio.create_task(
                 self._session.send_and_wait({"prompt": current_prompt}, timeout=total)
             )
-            watchdog_task = asyncio.create_task(
-                self._phase_watchdog(phase_deadline, end_deadline)
-            )
+            watchdog_task = asyncio.create_task(self._phase_watchdog(phase_deadline, end_deadline))
 
             done, pending = await asyncio.wait(
                 [session_task, watchdog_task],
@@ -206,13 +205,11 @@ class BaseAgent:
             idle = int(time.monotonic() - self._last_activity)
 
             if watchdog_result == "liveness":
-                raise asyncio.TimeoutError(
+                raise TimeoutError(
                     f"No activity for {idle}s (elapsed {elapsed}s) — agent appears stuck"
                 )
             if watchdog_result == "total":
-                raise asyncio.TimeoutError(
-                    f"Exceeded hard timeout of {int(total)}s"
-                )
+                raise TimeoutError(f"Exceeded hard timeout of {int(total)}s")
 
             # Phase timeout — abort current processing and inject the next prompt.
             self._log.warning(
@@ -221,12 +218,14 @@ class BaseAgent:
                 elapsed_s=elapsed,
                 watchdog=watchdog_result,
             )
-            await self._publish({
-                "type": "agent.phase_timeout",
-                "agent": self.role.value,
-                "phase": phase_index,
-                "elapsed_s": elapsed,
-            })
+            await self._publish(
+                {
+                    "type": "agent.phase_timeout",
+                    "agent": self.role.value,
+                    "phase": phase_index,
+                    "elapsed_s": elapsed,
+                }
+            )
 
             # Cancel the in-flight session_task and abort CLI-side processing.
             session_task.cancel()
@@ -240,7 +239,7 @@ class BaseAgent:
             phase_index += 1
 
         # Exhausted all phases without a completed result.
-        raise asyncio.TimeoutError(f"Exceeded hard timeout of {int(total)}s across all phases")
+        raise TimeoutError(f"Exceeded hard timeout of {int(total)}s across all phases")
 
     async def _phase_watchdog(self, phase_deadline: float, end_deadline: float) -> str:
         """
@@ -259,14 +258,14 @@ class BaseAgent:
             if now >= phase_deadline:
                 return "phase"
 
-    def _handle_sdk_event(self, event: "SessionEvent") -> None:
+    def _handle_sdk_event(self, event: SessionEvent) -> None:
         """Translate Copilot SDK events into Orchestra events and publish them."""
         asyncio.get_event_loop().call_soon_threadsafe(
             asyncio.ensure_future,
             self._async_handle_sdk_event(event),
         )
 
-    async def _async_handle_sdk_event(self, event: "SessionEvent") -> None:
+    async def _async_handle_sdk_event(self, event: SessionEvent) -> None:
         """Async translation of SDK events to Orchestra events."""
         # Any incoming event resets the liveness clock.
         self._last_activity = time.monotonic()

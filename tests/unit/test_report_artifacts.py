@@ -80,7 +80,9 @@ def test_final_summary_uses_verification_predicate_and_context():
         verdict=GateVerdict.NEEDS_HUMAN_REVIEW,
         verification_summary=VerificationSummary(
             status="complete",
-            verdict_predicate="no canonical blocking failures, but significant coverage gaps remain",
+            verdict_predicate=(
+                "no canonical blocking failures, but significant coverage gaps remain"
+            ),
             checks=[
                 VerificationCheckResult(
                     name="e2e_coverage",
@@ -99,7 +101,9 @@ def test_final_summary_uses_verification_predicate_and_context():
         drift_summary=DriftSummary(summary="主要漂移型態：test"),
     )
 
-    assert "裁決依據：no canonical blocking failures, but significant coverage gaps remain" in summary
+    assert (
+        "裁決依據：no canonical blocking failures, but significant coverage gaps remain" in summary
+    )
     assert "Integration coverage [e2e]" in summary
     assert "部分覆蓋" in summary
 

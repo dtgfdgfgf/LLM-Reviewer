@@ -8,47 +8,47 @@ verification results, and verdicts consistently.
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 
-class ReviewProfile(str, Enum):
+class ReviewProfile(StrEnum):
     GENERAL = "general"
     LLM_REPO = "llm_repo"
 
 
-class EvidenceMode(str, Enum):
+class EvidenceMode(StrEnum):
     STATIC_ONLY = "static_only"
     STATIC_FIRST = "static_first"
     STATIC_RUNTIME = "static_runtime"
 
 
-class OutputMode(str, Enum):
+class OutputMode(StrEnum):
     REPORT = "report"
     STRUCTURED_REPORT = "structured_report"
     STRICT_JSON = "strict_json"
 
 
-class GateMode(str, Enum):
+class GateMode(StrEnum):
     ADVISORY = "advisory"
     BLOCKING = "blocking"
 
 
-class ConvergenceMode(str, Enum):
-    SINGLE_PASS = "single_pass"
+class ConvergenceMode(StrEnum):
+    SINGLE_PASS = "single_pass"  # noqa: S105
     ADAPTIVE_RERUN = "adaptive_rerun"
-    FIXED_DOUBLE_PASS = "fixed_double_pass"
+    FIXED_DOUBLE_PASS = "fixed_double_pass"  # noqa: S105
 
 
-class FindingSeverity(str, Enum):
+class FindingSeverity(StrEnum):
     BLOCKING = "blocking"
     MAJOR = "major"
     MINOR = "minor"
     SUGGESTION = "suggestion"
 
 
-class DriftType(str, Enum):
+class DriftType(StrEnum):
     SPEC = "spec"
     ARCHITECTURE = "architecture"
     SECURITY = "security"
@@ -58,13 +58,13 @@ class DriftType(str, Enum):
     NONE = "none"
 
 
-class GateVerdict(str, Enum):
-    PASS = "PASS"
+class GateVerdict(StrEnum):
+    PASS = "PASS"  # noqa: S105
     FAIL = "FAIL"
     NEEDS_HUMAN_REVIEW = "NEEDS_HUMAN_REVIEW"
 
 
-class FindingKind(str, Enum):
+class FindingKind(StrEnum):
     REVIEW = "review_finding"
     RUNTIME_FAILURE = "runtime_failure"
     COVERAGE_GAP = "coverage_gap"
@@ -72,14 +72,14 @@ class FindingKind(str, Enum):
     ENV_GAP = "env_gap"
 
 
-class VerificationRole(str, Enum):
+class VerificationRole(StrEnum):
     CANONICAL = "canonical"
     SUPPLEMENTAL = "supplemental"
     EXPLORATORY = "exploratory"
     STALE_SUSPECT = "stale-suspect"
 
 
-class VerificationApplicability(str, Enum):
+class VerificationApplicability(StrEnum):
     REQUIRED = "required"
     OPTIONAL = "optional"
     ENV_GATED = "env-gated"

@@ -76,6 +76,7 @@ def apply_enterprise_sdk_patches() -> None:
 # ModelSupports — vision capability flag
 # ---------------------------------------------------------------------------
 
+
 def _patch_model_supports() -> None:
     """Default ``vision`` to False when absent.
 
@@ -94,6 +95,7 @@ def _patch_model_supports() -> None:
 # ---------------------------------------------------------------------------
 # ModelCapabilities — supports / limits objects
 # ---------------------------------------------------------------------------
+
 
 def _patch_model_capabilities() -> None:
     """Default missing ``supports`` / ``limits`` to empty objects.
@@ -117,6 +119,7 @@ def _patch_model_capabilities() -> None:
 # ---------------------------------------------------------------------------
 # ModelPolicy — state / terms strings
 # ---------------------------------------------------------------------------
+
 
 def _patch_model_policy() -> None:
     """Default missing ``state`` to ``"unconfigured"`` and ``terms`` to ``""``.
@@ -142,6 +145,7 @@ def _patch_model_policy() -> None:
 # ---------------------------------------------------------------------------
 # ModelBilling — cost multiplier
 # ---------------------------------------------------------------------------
+
 
 def _patch_model_billing() -> None:
     """Default missing ``multiplier`` to ``1.0``.

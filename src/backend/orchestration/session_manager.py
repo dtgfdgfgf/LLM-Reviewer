@@ -8,7 +8,7 @@ BYOK configuration is injected into every session if configured.
 from __future__ import annotations
 
 from types import TracebackType
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from copilot import CopilotClient, CopilotSession, PermissionHandler
 from copilot.types import (
@@ -66,7 +66,7 @@ class SessionManager:
             finally:
                 self._client = None
 
-    async def __aenter__(self) -> "SessionManager":
+    async def __aenter__(self) -> SessionManager:
         await self.start()
         return self
 

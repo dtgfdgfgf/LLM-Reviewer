@@ -15,8 +15,10 @@ import sys
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 import webbrowser
+from ipaddress import ip_address
 from pathlib import Path
 
 import uvicorn
@@ -93,15 +95,11 @@ async def _run_preflight() -> None:
         )
 
     if settings.copilot_cli_path and not Path(settings.copilot_cli_path).exists():
-        raise LauncherError(
-            f"找不到設定的 Copilot CLI：{settings.copilot_cli_path}"
-        )
+        raise LauncherError(f"找不到設定的 Copilot CLI：{settings.copilot_cli_path}")
 
     frontend_dist = resolve_frontend_dist()
     if frontend_dist is None:
-        raise LauncherError(
-            "找不到前端靜態檔。請先執行前端 build，再重新打包 Reviewer.exe。"
-        )
+        raise LauncherError("找不到前端靜態檔。請先執行前端 build，再重新打包 Reviewer.exe。")
 
     manager = SessionManager(settings)
     try:
@@ -115,13 +113,14 @@ async def _run_preflight() -> None:
 def _wait_for_health(base_url: str, server_thread: threading.Thread, timeout: float = 20.0) -> None:
     deadline = time.time() + timeout
     last_error: Exception | None = None
+    health_url = _healthcheck_url(base_url)
 
     while time.time() < deadline:
         if not server_thread.is_alive():
             raise LauncherError("本機 Reviewer 啟動失敗，請檢查 Copilot CLI 或 .env 設定。")
 
         try:
-            with urllib.request.urlopen(f"{base_url}/api/health", timeout=1) as response:
+            with urllib.request.urlopen(health_url, timeout=1) as response:  # noqa: S310
                 if response.status == 200:
                     return
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
@@ -131,6 +130,27 @@ def _wait_for_health(base_url: str, server_thread: threading.Thread, timeout: fl
     if last_error is not None:
         raise LauncherError(f"等待本機服務啟動逾時：{last_error}")
     raise LauncherError("等待本機服務啟動逾時。")
+
+
+def _healthcheck_url(base_url: str) -> str:
+    parsed = urllib.parse.urlparse(base_url)
+    if parsed.scheme not in {"http", "https"}:
+        raise LauncherError(f"不支援的本機服務 URL scheme：{parsed.scheme or '(empty)'}")
+
+    hostname = parsed.hostname
+    if hostname is None:
+        raise LauncherError("本機服務 URL 缺少主機名稱。")
+
+    if hostname != "localhost":
+        try:
+            if not ip_address(hostname).is_loopback:
+                raise LauncherError("本機服務 URL 必須是 loopback 位址。")
+        except ValueError as exc:
+            raise LauncherError(f"本機服務 URL 主機名稱無效：{hostname}") from exc
+
+    base_path = parsed.path.rstrip("/")
+    health_path = f"{base_path}/api/health" if base_path else "/api/health"
+    return parsed._replace(path=health_path, params="", query="", fragment="").geturl()
 
 
 def main() -> int:

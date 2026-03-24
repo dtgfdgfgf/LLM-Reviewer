@@ -9,9 +9,9 @@ control endpoints without leaking those details into the core pipeline.
 from __future__ import annotations
 
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
 
 
 @dataclass(slots=True)

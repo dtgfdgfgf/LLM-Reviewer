@@ -4,7 +4,8 @@ __pycache__/
 *.egg-info/
 *.egg
 .eggs/
-dist/
+dist/*
+!dist/Reviewer.exe
 build/
 *.so
 *.pyd
@@ -33,8 +34,12 @@ src/frontend/.vite/
 .DS_Store
 .idea/
 .vscode/
+.claude/
 *.swp
 *.swo
+
+# Packaged fallback output
+release-dist/*
 
 # Test / coverage
 .pytest_cache/

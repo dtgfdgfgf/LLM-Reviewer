@@ -9,13 +9,13 @@ structured metadata that downstream reviewers can reason about safely.
 
 from __future__ import annotations
 
-from collections import Counter, defaultdict
 import json
 import os
 import re
 import shutil
 import subprocess
 import tomllib
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -209,9 +209,9 @@ def _has_tests(pyproject: dict | None, workdir: Path) -> bool:
 
 
 def _has_ruff_config(pyproject: dict | None, workdir: Path) -> bool:
-    return any((workdir / name).exists() for name in (".ruff.toml", "ruff.toml")) or _pyproject_mentions(
-        pyproject, "ruff"
-    )
+    return any(
+        (workdir / name).exists() for name in (".ruff.toml", "ruff.toml")
+    ) or _pyproject_mentions(pyproject, "ruff")
 
 
 def _safe_script_command(
@@ -744,11 +744,19 @@ def _classify_candidate(
         return VerificationRole.SUPPLEMENTAL, VerificationApplicability.ENV_GATED, False
 
     if candidate.kind_hint == FindingKind.LABEL_MISMATCH:
-        role = VerificationRole.SUPPLEMENTAL if relevant or not selected_scopes else VerificationRole.STALE_SUSPECT
+        role = (
+            VerificationRole.SUPPLEMENTAL
+            if relevant or not selected_scopes
+            else VerificationRole.STALE_SUSPECT
+        )
         return role, VerificationApplicability.OPTIONAL, False
 
     if candidate.name == "security_scan" and not has_ci_or_task and not has_docs:
-        role = VerificationRole.EXPLORATORY if relevant or not selected_scopes else VerificationRole.STALE_SUSPECT
+        role = (
+            VerificationRole.EXPLORATORY
+            if relevant or not selected_scopes
+            else VerificationRole.STALE_SUSPECT
+        )
         return role, VerificationApplicability.OPTIONAL, False
 
     if (has_ci_or_task and (relevant or candidate.scope == "repo-wide")) or (
@@ -899,12 +907,14 @@ def _predicate_for_results(results: list[VerificationCheckResult]) -> str:
     unavailable_required = [
         check
         for check in results
-        if check.applicability == VerificationApplicability.REQUIRED and check.status == "unavailable"
+        if check.applicability == VerificationApplicability.REQUIRED
+        and check.status == "unavailable"
     ]
     coverage_gaps = [
         check
         for check in results
-        if check.kind_hint == FindingKind.COVERAGE_GAP and check.status in {"failed", "skipped", "unavailable"}
+        if check.kind_hint == FindingKind.COVERAGE_GAP
+        and check.status in {"failed", "skipped", "unavailable"}
     ]
     supplemental_failures = [
         check
@@ -937,7 +947,9 @@ async def run_verification(
     runtime evidence should force escalation or merely inform the review.
     """
     if evidence_mode == EvidenceMode.STATIC_ONLY:
-        return VerificationSummary(status="complete", checks=[], verdict_predicate="static-only mode")
+        return VerificationSummary(
+            status="complete", checks=[], verdict_predicate="static-only mode"
+        )
 
     root_path = Path(root)
     selected_scopes = _selected_scopes(selected_paths)
@@ -957,7 +969,10 @@ async def run_verification(
                     source=[],
                     confidence=0.4,
                     kind_hint=FindingKind.ENV_GAP,
-                    summary="未偵測到可安全執行的 deterministic validation set；此 repo 可能未配置或目前環境不適用。",
+                    summary=(
+                        "未偵測到可安全執行的 deterministic validation set；"
+                        "此 repo 可能未配置或目前環境不適用。"
+                    ),
                     blocking=False,
                 )
             ],
@@ -996,12 +1011,15 @@ async def run_verification(
     blocking_failures = [
         _check_label(result)
         for result in results
-        if result.blocking and result.status == "failed" and result.role == VerificationRole.CANONICAL
+        if result.blocking
+        and result.status == "failed"
+        and result.role == VerificationRole.CANONICAL
     ]
     unavailable_required = [
         _check_label(result)
         for result in results
-        if result.applicability == VerificationApplicability.REQUIRED and result.status == "unavailable"
+        if result.applicability == VerificationApplicability.REQUIRED
+        and result.status == "unavailable"
     ]
     return VerificationSummary(
         status="complete",

@@ -14,8 +14,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from backend.api.routes import auth as auth_router
 from backend.api.routes import app_control as app_control_router
+from backend.api.routes import auth as auth_router
 from backend.api.routes import models as models_router
 from backend.api.routes import reviews as reviews_router
 from backend.api.routes import sse as sse_router
@@ -47,13 +47,18 @@ class SPAStaticFiles(StaticFiles):
                 return await super().get_response("index.html", scope)
             raise
 
-        if response.status_code == 404 and path and not is_asset_request and not path.startswith("api/"):
+        if (
+            response.status_code == 404
+            and path
+            and not is_asset_request
+            and not path.startswith("api/")
+        ):
             return await super().get_response("index.html", scope)
         return response
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Manage startup and shutdown of the Copilot client."""
     settings: Settings = app.state.settings
 

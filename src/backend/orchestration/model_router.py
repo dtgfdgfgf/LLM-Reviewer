@@ -5,11 +5,14 @@ Priority chain (highest to lowest):
   User Override  >  Orchestrator Choice  >  Config Preset  >  Hardcoded Default
 
 Usage:
-    router = ModelRouter(preset=ModelPreset.BALANCED, overrides={AgentRole.SECURITY: "claude-opus-4-6"})
+    router = ModelRouter(
+        preset=ModelPreset.BALANCED,
+        overrides={AgentRole.SECURITY: "claude-opus-4-6"},
+    )
     model = router.get_model(AgentRole.SECURITY)
 """
 
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from backend.logging_config import get_logger
@@ -37,7 +40,7 @@ _ECONOMY_MODEL = "claude-haiku-4.5"
 _PERFORMANCE_MODEL = "claude-opus-4.6"
 
 
-class AgentRole(str, Enum):
+class AgentRole(StrEnum):
     ORCHESTRATOR = "orchestrator"
     REVIEWER_1 = "reviewer_1"
     REVIEWER_2 = "reviewer_2"
@@ -53,7 +56,7 @@ class AgentRole(str, Enum):
     JUDGE = "judge"
 
 
-class ModelPreset(str, Enum):
+class ModelPreset(StrEnum):
     BALANCED = "balanced"  # sensible defaults per role
     ECONOMY = "economy"  # cheapest model for all roles
     PERFORMANCE = "performance"  # best model for all roles

@@ -107,7 +107,8 @@ def _estimate_general(
     complexity = _scope_complexity(file_count, total_bytes)
     role_estimates: list[RoleEstimate] = []
     notes = [
-        "這是送出前的範圍估算；Premium Requests 依 GitHub 官方規則按 billable session × model multiplier 計算。",
+        "這是送出前的範圍估算；Premium Requests 依 GitHub 官方規則按 "
+        "billable session × model multiplier 計算。",
     ]
 
     for role in _GENERAL_ROLE_ORDER:
@@ -152,7 +153,8 @@ def _estimate_strict(
     plan = build_llm_review_plan(normalized_input.review_root, normalized_input.focus_prompt)
     role_estimates: list[RoleEstimate] = []
     notes = [
-        "這是送出前的範圍估算；Premium Requests 依 GitHub 官方規則按 billable session × model multiplier 計算。",
+        "這是送出前的範圍估算；Premium Requests 依 GitHub 官方規則按 "
+        "billable session × model multiplier 計算。",
         "challenger 是否啟用取決於 findings 與衝突程度。",
     ]
     sharded_roles = 0
@@ -174,7 +176,9 @@ def _estimate_strict(
         shard_notes: list[str] = []
         if len(shards) > 1:
             sharded_roles += 1
-            shard_notes.append("內容量可能超過單一 context 預算，這個角色會被拆成多個 reviewer session。")
+            shard_notes.append(
+                "內容量可能超過單一 context 預算，這個角色會被拆成多個 reviewer session。"
+            )
 
         role_estimates.append(
             RoleEstimate(
@@ -233,7 +237,9 @@ def _estimate_strict(
         )
 
     if sharded_roles:
-        notes.append(f"預估有 {sharded_roles} 個 strict reviewer 角色可能因 context 預算而拆 shard。")
+        notes.append(
+            f"預估有 {sharded_roles} 個 strict reviewer 角色可能因 context 預算而拆 shard。"
+        )
 
     return _aggregate_estimate(
         review_profile=ReviewProfile.LLM_REPO,

@@ -136,7 +136,9 @@ class TestStrictVerdicts:
             )
         )
 
-        verdict = _deterministic_verdict(findings, [], VerificationSummary(status="complete", checks=[]))
+        verdict = _deterministic_verdict(
+            findings, [], VerificationSummary(status="complete", checks=[])
+        )
 
         assert findings[0].kind == FindingKind.COVERAGE_GAP
         assert verdict == GateVerdict.NEEDS_HUMAN_REVIEW

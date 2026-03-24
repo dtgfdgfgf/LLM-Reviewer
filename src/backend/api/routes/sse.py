@@ -7,8 +7,7 @@ objects. The stream closes when a stream.end event is received.
 
 import asyncio
 import json
-import time
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
@@ -52,7 +51,7 @@ async def _event_generator(
     review_id: str,
     event_bus: EventBus,
     request: Request,
-) -> AsyncGenerator[str, None]:
+) -> AsyncGenerator[str]:
     """Async generator that yields SSE-formatted strings from the EventBus."""
     queue = event_bus.subscribe(review_id)
     logger.debug("SSE generator started", review_id=review_id)
@@ -66,7 +65,7 @@ async def _event_generator(
 
             try:
                 event = await asyncio.wait_for(queue.get(), timeout=HEARTBEAT_INTERVAL)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 # Send SSE comment as keepalive (transparent to EventSource)
                 yield ": heartbeat\n\n"
                 continue

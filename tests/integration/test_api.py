@@ -1,17 +1,19 @@
 """
-Integration tests for the FastAPI endpoints.
+FastAPI endpoint contract tests.
 
-These tests mock the SessionManager to avoid requiring a real Copilot CLI.
-Tests marked @pytest.mark.integration require a live CLI and are skipped by default.
+These tests use mocked sessions and run as part of the default pytest suite.
+Live Copilot CLI coverage lives in a separate module marked with
+``pytest.mark.integration``.
 
-Run with: uv run pytest tests/integration -v
-Skip with: uv run pytest -m "not integration" -v
+Run this file: uv run pytest tests/integration/test_api.py -v
+Skip live CLI tests elsewhere: uv run pytest -m "not integration" -v
 """
 
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
+
 from backend.api.routes import app_control as app_control_module
 from backend.app_runtime import AppRuntime
 from backend.main import create_app
@@ -37,8 +39,10 @@ def mock_session_manager():
                 id="claude-sonnet-4-6",
                 name="Claude Sonnet 4.6",
                 capabilities=MagicMock(
-                    to_dict=lambda: {"supports": {"vision": True, "reasoningEffort": False},
-                                    "limits": {"maxPromptTokens": 200000}}
+                    to_dict=lambda: {
+                        "supports": {"vision": True, "reasoningEffort": False},
+                        "limits": {"maxPromptTokens": 200000},
+                    }
                 ),
                 policy=None,
                 billing=None,
@@ -69,7 +73,9 @@ def frontend_dist(tmp_path):
     dist = tmp_path / "frontend-dist"
     assets = dist / "assets"
     assets.mkdir(parents=True)
-    (dist / "index.html").write_text("<!doctype html><html><body><div id='root'>Reviewer</div></body></html>")
+    (dist / "index.html").write_text(
+        "<!doctype html><html><body><div id='root'>Reviewer</div></body></html>"
+    )
     (assets / "app.js").write_text("console.log('reviewer');")
     return dist
 
@@ -184,7 +190,9 @@ class TestAppControlEndpoints:
         assert response.json()["status"] == "shutting_down"
         assert packaged_app.state.shutdown_called["value"] is True
 
-    def test_pick_folder_is_allowed_in_packaged_mode(self, packaged_client, monkeypatch, tmp_codebase):
+    def test_pick_folder_is_allowed_in_packaged_mode(
+        self, packaged_client, monkeypatch, tmp_codebase
+    ):
         monkeypatch.setattr(app_control_module, "_pick_folder_path", lambda: str(tmp_codebase))
 
         response = packaged_client.post("/api/app/pick-folder")
@@ -196,7 +204,9 @@ class TestAppControlEndpoints:
             "file_paths": None,
         }
 
-    def test_pick_files_is_allowed_in_packaged_mode(self, packaged_client, monkeypatch, tmp_codebase):
+    def test_pick_files_is_allowed_in_packaged_mode(
+        self, packaged_client, monkeypatch, tmp_codebase
+    ):
         selected = [str(tmp_codebase / "README.md"), str(tmp_codebase / "requirements.txt")]
         monkeypatch.setattr(app_control_module, "_pick_file_paths", lambda: selected)
 
@@ -448,12 +458,3 @@ class TestReviewEndpoint:
         assert isinstance(review["session_reports"], list)
         if review["session_reports"]:
             assert review["session_reports"][0]["report_markdown"] is None
-
-
-@pytest.mark.integration
-class TestSSEStream:
-    """These tests require a real Copilot CLI. Skipped by default."""
-
-    async def test_sse_stream_delivers_events(self, tmp_codebase):
-        """Requires live Copilot CLI."""
-        pytest.skip("Requires live Copilot CLI")

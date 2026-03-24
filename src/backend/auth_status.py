@@ -91,9 +91,7 @@ async def collect_auth_status(
                 else "Copilot runtime 尚未就緒。"
             ),
             suggested_actions=(
-                []
-                if connected
-                else ["請先確認 app 已正常啟動，再按「驗證帳號」。"]
+                [] if connected else ["請先確認 app 已正常啟動，再按「驗證帳號」。"]
             ),
         )
 

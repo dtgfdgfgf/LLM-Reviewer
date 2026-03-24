@@ -2,7 +2,6 @@
 Shared pytest fixtures for Reviewer tests.
 """
 
-import asyncio
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 

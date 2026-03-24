@@ -21,7 +21,9 @@ def _which(command: str) -> str | None:
     return mapping.get(command)
 
 
-def test_run_verification_keeps_active_frontend_checks_out_of_stale_bucket(tmp_codebase, monkeypatch):
+def test_run_verification_keeps_active_frontend_checks_out_of_stale_bucket(
+    tmp_codebase, monkeypatch
+):
     (tmp_codebase / "pyproject.toml").write_text(
         "[project]\nname='demo'\n[tool.pytest.ini_options]\ntestpaths=['tests']\n",
         encoding="utf-8",
@@ -34,7 +36,9 @@ def test_run_verification_keeps_active_frontend_checks_out_of_stale_bucket(tmp_c
         encoding="utf-8",
     )
     (tmp_codebase / "src" / "frontend" / "src").mkdir()
-    (tmp_codebase / "src" / "frontend" / "src" / "App.jsx").write_text("export default function App() {}", encoding="utf-8")
+    (tmp_codebase / "src" / "frontend" / "src" / "App.jsx").write_text(
+        "export default function App() {}", encoding="utf-8"
+    )
 
     monkeypatch.setattr("backend.orchestration.verification.shutil.which", _which)
     monkeypatch.setattr(
@@ -51,14 +55,10 @@ def test_run_verification_keeps_active_frontend_checks_out_of_stale_bucket(tmp_c
     )
 
     frontend_test = next(
-        check
-        for check in summary.checks
-        if check.scope == "frontend" and check.name == "tests"
+        check for check in summary.checks if check.scope == "frontend" and check.name == "tests"
     )
     root_test = next(
-        check
-        for check in summary.checks
-        if check.scope == "repo-wide" and check.name == "tests"
+        check for check in summary.checks if check.scope == "repo-wide" and check.name == "tests"
     )
 
     assert frontend_test.role == VerificationRole.SUPPLEMENTAL
@@ -67,7 +67,9 @@ def test_run_verification_keeps_active_frontend_checks_out_of_stale_bucket(tmp_c
     assert root_test.applicability == VerificationApplicability.REQUIRED
 
 
-def test_run_verification_marks_unrelated_frontend_scripts_as_stale_suspect(tmp_codebase, monkeypatch):
+def test_run_verification_marks_unrelated_frontend_scripts_as_stale_suspect(
+    tmp_codebase, monkeypatch
+):
     (tmp_codebase / "pyproject.toml").write_text(
         "[project]\nname='demo'\n[tool.pytest.ini_options]\ntestpaths=['tests']\n",
         encoding="utf-8",
@@ -95,9 +97,7 @@ def test_run_verification_marks_unrelated_frontend_scripts_as_stale_suspect(tmp_
     )
 
     frontend_test = next(
-        check
-        for check in summary.checks
-        if check.scope == "frontend" and check.name == "tests"
+        check for check in summary.checks if check.scope == "frontend" and check.name == "tests"
     )
 
     assert frontend_test.role == VerificationRole.STALE_SUSPECT
@@ -141,7 +141,10 @@ def test_live_client():
     assert coverage.kind_hint == FindingKind.COVERAGE_GAP
     assert coverage.status == "skipped"
     assert coverage.applicability == VerificationApplicability.ENV_GATED
-    assert summary.verdict_predicate == "no canonical blocking failures, but significant coverage gaps remain"
+    assert (
+        summary.verdict_predicate
+        == "no canonical blocking failures, but significant coverage gaps remain"
+    )
 
 
 def test_run_verification_flags_mock_heavy_integration_labels(tmp_codebase, monkeypatch):
@@ -169,7 +172,9 @@ def test_endpoint():
 
     summary = asyncio.run(run_verification(str(tmp_codebase), "static_runtime"))
 
-    label_check = next(check for check in summary.checks if check.name == "integration_label_fidelity")
+    label_check = next(
+        check for check in summary.checks if check.name == "integration_label_fidelity"
+    )
 
     assert label_check.kind_hint == FindingKind.LABEL_MISMATCH
     assert label_check.status == "failed"

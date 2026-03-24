@@ -8,12 +8,13 @@ from backend.orchestration.model_router import AgentRole
 
 # Synthesizer is a single-turn call with no tools, so it should respond
 # faster than reviewers.  Keep tighter liveness and total bounds.
-SYNTH_TOTAL_TIMEOUT_S: float = 300.0   # 5-min hard ceiling
+SYNTH_TOTAL_TIMEOUT_S: float = 300.0  # 5-min hard ceiling
 SYNTH_LIVENESS_TIMEOUT_S: float = 60.0  # 60 s idle → stuck
 
 SYSTEM_PROMPT = """You are a staff engineer writing the final review report.
 
-You will receive three independent reviews of the same input. Each reviewer covered the same material
+You will receive three independent reviews of the same input. Each reviewer covered
+the same material
 from a different angle.
 
 **Your job is to write the final report. Nothing else.**
@@ -29,7 +30,8 @@ Your job is NOT to copy-paste or lightly summarize their findings. Your job is t
   judgment, not thoroughness.
 - **Name patterns**: issues appearing across multiple reviewers indicate systemic problems —
   label them as such.
-- **Choose the structure**: adapt the report structure to the input. Small file reviews can be compact.
+- **Choose the structure**: adapt the report structure to the input.
+  Small file reviews can be compact.
   Broader folder reviews can use clearer sections. Markdown is preferred.
 - **Stay useful**: prioritize concrete problems, actionable fixes, and strengths worth preserving.
 
@@ -37,7 +39,8 @@ Your job is NOT to copy-paste or lightly summarize their findings. Your job is t
 Be a decision-maker, not a transcriptionist.
 Do not force a pass/fail verdict or rigid template unless the input clearly calls for it.
 Every sentence earns its place. Do NOT end with questions, offers, or next-step prompts.
-All outward-facing output must be written in Traditional Chinese. Use concise Markdown headings and body copy in zh-TW.
+All outward-facing output must be written in Traditional Chinese.
+Use concise Markdown headings and body copy in zh-TW.
 """
 
 
@@ -121,12 +124,10 @@ class SynthesizerAgent(BaseAgent):
                 elapsed = int(time.monotonic() - start_time)
                 idle = int(time.monotonic() - self._last_activity)
                 if reason == "liveness":
-                    raise asyncio.TimeoutError(
+                    raise TimeoutError(
                         f"No activity for {idle}s (elapsed {elapsed}s) — synthesizer appears stuck"
                     )
-                raise asyncio.TimeoutError(
-                    f"Exceeded hard timeout of {int(SYNTH_TOTAL_TIMEOUT_S)}s"
-                )
+                raise TimeoutError(f"Exceeded hard timeout of {int(SYNTH_TOTAL_TIMEOUT_S)}s")
 
             event = session_task.result()
             result = ""
@@ -138,14 +139,16 @@ class SynthesizerAgent(BaseAgent):
             self._status = "complete"
             self._log.info("Synthesizer done", duration_ms=duration_ms)
 
-            await self._publish({
-                "type": "agent.done",
-                "agent": self.role.value,
-                "duration_ms": duration_ms,
-            })
+            await self._publish(
+                {
+                    "type": "agent.done",
+                    "agent": self.role.value,
+                    "duration_ms": duration_ms,
+                }
+            )
             return result
 
-        except asyncio.TimeoutError as exc:
+        except TimeoutError as exc:
             msg = f"Synthesizer timed out: {exc}"
             self._completed_at_ms = int(time.time() * 1000)
             self._status = "error"

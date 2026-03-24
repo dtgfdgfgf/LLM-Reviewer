@@ -7,6 +7,7 @@ POST /api/app/pick-*   — packaged-only native file/folder pickers.
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 from ipaddress import ip_address
 
@@ -32,18 +33,23 @@ def _is_loopback_host(host: str | None) -> bool:
 
 def _assert_packaged_loopback(request: Request, runtime: AppRuntime) -> None:
     if not runtime.packaged:
-        raise HTTPException(status_code=404, detail="This endpoint is only available in packaged mode")
+        raise HTTPException(
+            status_code=404, detail="This endpoint is only available in packaged mode"
+        )
 
     host = request.client.host if request.client else None
     if not _is_loopback_host(host):
-        raise HTTPException(status_code=403, detail="Packaged app endpoints must come from loopback")
+        raise HTTPException(
+            status_code=403, detail="Packaged app endpoints must come from loopback"
+        )
 
 
 def _run_powershell_picker(script: str) -> str:
+    powershell = shutil.which("powershell") or shutil.which("powershell.exe")
     try:
         result = subprocess.run(
             [
-                "powershell",
+                powershell or "powershell",
                 "-NoProfile",
                 "-STA",
                 "-Command",

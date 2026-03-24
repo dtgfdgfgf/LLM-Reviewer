@@ -13,7 +13,8 @@ from backend.tools.codebase import MAX_FILE_SIZE_BYTES, is_supported_text_file
 
 DEFAULT_FOCUS_PROMPT = (
     "Review this material thoroughly and produce a useful engineering report. "
-    "Prioritize correctness, maintainability, architecture, reliability, and user impact where relevant."
+    "Prioritize correctness, maintainability, architecture, reliability, "
+    "and user impact where relevant."
 )
 
 
@@ -61,13 +62,18 @@ def _write_uploaded_files(
     selected_paths: list[str] = []
     try:
         for index, file_data in enumerate(uploaded_files):
-            name = _dedupe_name(_sanitize_uploaded_name(str(file_data.get("name", "")), index), used_names)
+            name = _dedupe_name(
+                _sanitize_uploaded_name(str(file_data.get("name", "")), index), used_names
+            )
             content = str(file_data.get("content", ""))
             if "\x00" in content:
-                raise ValueError(f"Unsupported file type for review: {name} (contains binary null bytes)")
+                raise ValueError(
+                    f"Unsupported file type for review: {name} (contains binary null bytes)"
+                )
             if len(content.encode("utf-8")) > MAX_FILE_SIZE_BYTES:
                 raise ValueError(
-                    f"Unsupported file type for review: {name} (exceeds {MAX_FILE_SIZE_BYTES} bytes)"
+                    "Unsupported file type for review: "
+                    f"{name} (exceeds {MAX_FILE_SIZE_BYTES} bytes)"
                 )
 
             target = temp_root / name
@@ -84,7 +90,9 @@ def _write_uploaded_files(
         shutil.rmtree(temp_root, ignore_errors=True)
         raise
 
-    label = selected_paths[0] if len(selected_paths) == 1 else f"{len(selected_paths)} uploaded files"
+    label = (
+        selected_paths[0] if len(selected_paths) == 1 else f"{len(selected_paths)} uploaded files"
+    )
     return temp_root, selected_paths, label
 
 
@@ -146,13 +154,12 @@ def normalize_local_review_input(
             raise ValueError("Selected files must be on the same drive") from exc
 
         selected_paths = sorted(
-            {
-                str(path.relative_to(common_root)).replace("\\", "/")
-                for path in resolved_files
-            }
+            {str(path.relative_to(common_root)).replace("\\", "/") for path in resolved_files}
         )
 
-        label = resolved_files[0].name if len(resolved_files) == 1 else f"{len(resolved_files)} files"
+        label = (
+            resolved_files[0].name if len(resolved_files) == 1 else f"{len(resolved_files)} files"
+        )
         return NormalizedReviewInput(
             source_mode="files",
             review_root=str(common_root.resolve()),

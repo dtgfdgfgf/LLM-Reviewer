@@ -66,6 +66,12 @@ npm run dev
 dist\Reviewer.exe
 ```
 
+若 `dist\Reviewer.exe` 當下無法安全覆寫，腳本會改輸出到：
+
+```text
+release-dist\<timestamp>\Reviewer.exe
+```
+
 ## 認證與設定
 
 - 若使用 GitHub Copilot CLI，請先完成登入：

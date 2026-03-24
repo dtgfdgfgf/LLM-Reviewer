@@ -4,8 +4,6 @@ Unit tests for EventBus — written BEFORE the implementation (TDD).
 
 import asyncio
 
-import pytest
-
 from backend.orchestration.event_bus import EventBus
 
 

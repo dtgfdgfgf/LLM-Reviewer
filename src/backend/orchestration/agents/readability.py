@@ -3,7 +3,8 @@
 from backend.orchestration.agents.base import BaseAgent
 from backend.orchestration.model_router import AgentRole
 
-SYSTEM_PROMPT = """You are a senior software engineer performing a focused code readability and maintainability review.
+SYSTEM_PROMPT = """You are a senior software engineer performing
+a focused code readability and maintainability review.
 
 Your job: identify clarity, structure, and maintainability issues in the assigned files.
 
@@ -44,10 +45,16 @@ class ReadabilityAgent(BaseAgent):
     role = AgentRole.READABILITY
 
     def _build_prompt(self, files: list[str], focus: str) -> str:
-        files_list = "\n".join(f"- {f}" for f in files) if files else "- (entire codebase — use list_directory to discover files)"
+        files_list = (
+            "\n".join(f"- {f}" for f in files)
+            if files
+            else "- (entire codebase — use list_directory to discover files)"
+        )
         return (
-            f"Perform a readability and maintainability review of the following files:\n\n{files_list}\n\n"
+            "Perform a readability and maintainability review of the "
+            f"following files:\n\n{files_list}\n\n"
             f"Additional context from orchestrator: {focus}\n\n"
-            f"Use list_directory to understand the project structure, then read_file on the assigned files. "
+            "Use list_directory to understand the project structure, "
+            "then read_file on the assigned files. "
             f"Provide your complete readability review in the required format."
         )

@@ -7,8 +7,8 @@ and the frontend download actions.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
 import re
+from collections.abc import Iterable
 
 from pydantic import BaseModel, Field
 
@@ -25,7 +25,6 @@ from backend.orchestration.strict_types import (
     VerificationRole,
     VerificationSummary,
 )
-
 
 ROLE_DISPLAY_NAMES_ZH: dict[str, str] = {
     "orchestrator": "協調規劃",
@@ -220,7 +219,9 @@ def build_strict_session_report(
     )
     if rationale_markdown.strip():
         lines.extend(["", "## 補充判斷", rationale_markdown.strip()])
-    lines.extend(["", "## 原始 Session 輸出", raw_output.strip() or "此 session 沒有產出文字結果。"])
+    lines.extend(
+        ["", "## 原始 Session 輸出", raw_output.strip() or "此 session 沒有產出文字結果。"]
+    )
     return SessionReport(
         agent_id=agent_id,
         display_name=display_name,
@@ -274,7 +275,9 @@ def build_challenger_session_report(
     )
     if rationale_markdown.strip():
         lines.extend(["", "## 補充判斷", rationale_markdown.strip()])
-    lines.extend(["", "## 原始 Session 輸出", raw_output.strip() or "此 session 沒有產出文字結果。"])
+    lines.extend(
+        ["", "## 原始 Session 輸出", raw_output.strip() or "此 session 沒有產出文字結果。"]
+    )
     return SessionReport(
         agent_id=agent_id,
         display_name=display_name,
@@ -286,7 +289,9 @@ def build_challenger_session_report(
         report_markdown="\n".join(lines).strip() + "\n",
         metrics=metrics,
         tool_call_count=tool_call_count,
-        no_issue_sections=["已完成 challenge 流程。"] if challenge_notes else ["沒有需要 challenge 的項目。"],
+        no_issue_sections=["已完成 challenge 流程。"]
+        if challenge_notes
+        else ["沒有需要 challenge 的項目。"],
         rationale_markdown=rationale_markdown,
     )
 
@@ -335,7 +340,9 @@ def build_judge_session_report(
     )
     if rationale_markdown.strip():
         lines.extend(["", "## 補充判斷", rationale_markdown.strip()])
-    lines.extend(["", "## 原始 Session 輸出", raw_output.strip() or "此 session 沒有產出文字結果。"])
+    lines.extend(
+        ["", "## 原始 Session 輸出", raw_output.strip() or "此 session 沒有產出文字結果。"]
+    )
     return SessionReport(
         agent_id=agent_id,
         display_name=display_name,
@@ -407,7 +414,9 @@ def build_final_summary_markdown(
     if verification_summary and verification_summary.checks:
         lines.extend(_verification_lines(verification_summary.checks))
         if verification_summary.blocking_failures:
-            lines.extend(["", "### 阻擋失敗", *(_bullet_lines(verification_summary.blocking_failures))])
+            lines.extend(
+                ["", "### 阻擋失敗", *(_bullet_lines(verification_summary.blocking_failures))]
+            )
         if verification_summary.unavailable_required:
             lines.extend(
                 [
@@ -464,7 +473,11 @@ def build_next_steps_markdown(
 
     if review_profile == ReviewProfile.LLM_REPO:
         for finding in consensus_findings:
-            target = immediate if finding.severity in {FindingSeverity.BLOCKING, FindingSeverity.MAJOR} else backlog
+            target = (
+                immediate
+                if finding.severity in {FindingSeverity.BLOCKING, FindingSeverity.MAJOR}
+                else backlog
+            )
             target.append(_finding_action_line(finding))
         for finding in disputed_findings:
             confirm.append(_finding_action_line(finding))
@@ -482,11 +495,17 @@ def build_next_steps_markdown(
                     else:
                         confirm.append(f"確認 `{label}` 是否應視為正式 gate：{check.summary}")
                 elif check.status == "unavailable":
-                    confirm.append(f"確認 `{verification_check_title(check)}` 是否應配置於此 repo：{check.summary}")
+                    confirm.append(
+                        "確認 "
+                        f"`{verification_check_title(check)}` "
+                        f"是否應配置於此 repo：{check.summary}"
+                    )
                 elif check.status == "skipped":
                     target = confirm if check.kind_hint == FindingKind.COVERAGE_GAP else backlog
                     target.append(
-                        f"確認 `{verification_check_title(check)}` 是否需要納入後續驗證：{check.summary}"
+                        "確認 "
+                        f"`{verification_check_title(check)}` "
+                        f"是否需要納入後續驗證：{check.summary}"
                     )
     else:
         for report in session_reports:
@@ -494,7 +513,9 @@ def build_next_steps_markdown(
             immediate.extend(f"{report.display_name}：{item}" for item in problems[:2])
             backlog.extend(f"{report.display_name}：{item}" for item in suggestions[:2])
         if not immediate:
-            confirm.append("本次一般模式未整理出阻擋項目，建議先人工確認高風險模組是否需要進一步審查。")
+            confirm.append(
+                "本次一般模式未整理出阻擋項目，建議先人工確認高風險模組是否需要進一步審查。"
+            )
 
     if verdict == GateVerdict.FAIL:
         immediate.insert(0, "先處理所有阻擋與重大問題，再考慮合併或發布。")
@@ -550,7 +571,8 @@ def _session_header_lines(
         f"- 狀態：{status}",
         f"- 執行時間：{duration_label}",
         f"- 工具呼叫數：{tool_call_count}",
-        f"- Tokens：{metrics.total_tokens}（輸入 {metrics.input_tokens} / 輸出 {metrics.output_tokens}）",
+        "- Tokens："
+        f"{metrics.total_tokens}（輸入 {metrics.input_tokens} / 輸出 {metrics.output_tokens}）",
     ]
 
 
@@ -562,9 +584,10 @@ def _finding_lines(findings: Iterable[Finding]) -> list[str]:
     lines: list[str] = []
     for item in findings:
         severity = _SEVERITY_LABELS.get(item.severity, item.severity.value)
-        evidence = ", ".join(
-            ref.label or ref.path or ref.kind for ref in item.evidence_refs[:3]
-        ) or "未提供證據"
+        evidence = (
+            ", ".join(ref.label or ref.path or ref.kind for ref in item.evidence_refs[:3])
+            or "未提供證據"
+        )
         lines.append(f"- [{severity}] {item.summary}（證據：{evidence}）")
     return lines
 
@@ -617,7 +640,9 @@ def _dedupe(items: Iterable[str]) -> list[str]:
     return result
 
 
-def _session_summary(report: SessionReport, review_profile: ReviewProfile) -> tuple[list[str], list[str], list[str]]:
+def _session_summary(
+    report: SessionReport, review_profile: ReviewProfile
+) -> tuple[list[str], list[str], list[str]]:
     if review_profile == ReviewProfile.LLM_REPO:
         problems = [
             f"[{_SEVERITY_LABELS.get(item.severity, item.severity.value)}] {item.summary}"

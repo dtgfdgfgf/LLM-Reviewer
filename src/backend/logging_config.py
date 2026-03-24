@@ -16,9 +16,7 @@ _SENSITIVE_KEYS = frozenset(
 )
 
 
-def _scrub_sensitive(
-    logger: Any, method: str, event_dict: dict[str, Any]
-) -> dict[str, Any]:
+def _scrub_sensitive(logger: Any, method: str, event_dict: dict[str, Any]) -> dict[str, Any]:
     """Processor: remove any key that looks like a credential."""
     for key in list(event_dict.keys()):
         if any(s in key.lower() for s in _SENSITIVE_KEYS):

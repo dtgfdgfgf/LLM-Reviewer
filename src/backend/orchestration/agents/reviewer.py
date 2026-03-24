@@ -169,6 +169,7 @@ outage. Be concrete: name the exact interaction that breaks and under what condi
 
 # ── Assembled system prompts ──────────────────────────────────────────────────
 
+
 def _build_system_prompt(persona: str) -> str:
     return f"{_SECURITY_BLOCK}\n\n---\n\n{persona}\n\n---\n\n{_BASELINE}"
 
@@ -202,7 +203,8 @@ class ReviewerAgent(BaseAgent):
             f"READING WORKFLOW — follow in order, exit as soon as you can write:\n\n"
             f"  1. ORIENT — list_directory(depth=1 or 2) if you need to understand the project "
             f"layout. Skip if the file list already tells you enough.\n"
-            f"  2. READ ASSIGNED — read_file on each assigned file above. This is your primary job.\n"
+            "  2. READ ASSIGNED — read_file on each assigned file above. "
+            "This is your primary job.\n"
             f"  3. PULL IN DEPENDENCIES — after reading each assigned file, ask: "
             f"'Do I need to read another file to make a specific finding accurate?' "
             f"If yes, read that one file. If no, move on. "
@@ -210,7 +212,8 @@ class ReviewerAgent(BaseAgent):
             f"observation in the review rather than keep digging. "
             f"Limit additional files to at most 5 beyond the assigned list.\n"
             f"  4. WRITE — once you've read the assigned files (plus any critical dependencies), "
-            f"write the review immediately. Do not keep reading in hopes of finding more issues.\n\n"
+            "write the review immediately. "
+            "Do not keep reading in hopes of finding more issues.\n\n"
             f"ANTI-PATTERNS — avoid these:\n"
             f"  ✗ Reading the same file twice.\n"
             f"  ✗ Following dependency chains more than 1 level deep.\n"

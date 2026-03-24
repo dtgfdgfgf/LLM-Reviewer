@@ -17,6 +17,7 @@ import time
 from dataclasses import dataclass
 from typing import Literal
 
+from backend.orchestration.report_artifacts import ArtifactSummary, SessionReport
 from backend.orchestration.strict_types import (
     ConvergenceMetrics,
     DriftSummary,
@@ -29,7 +30,6 @@ from backend.orchestration.strict_types import (
     VerificationSummary,
 )
 from backend.orchestration.strict_types import ConvergenceMode as StrictConvergenceMode
-from backend.orchestration.report_artifacts import ArtifactSummary, SessionReport
 
 
 @dataclass
@@ -46,7 +46,7 @@ class ReviewState:
     review_root: str
     selected_paths: list[str]
     model_preset: str
-    started_at: int          # unix ms
+    started_at: int  # unix ms
     completed_at: int | None = None
     duration_ms: int | None = None
     report: str | None = None
